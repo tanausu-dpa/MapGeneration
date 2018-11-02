@@ -17,8 +17,25 @@
 ######################################################################
 ######################################################################
 #                                                                    #
+# This program is free software: you can redistribute it and/or      #
+# modify it under the terms of the GNU General Public License as     #
+# published by the Free Software Foundation, either version 3 of     #
+# the License, or (at your option) any later version.                #
+#                                                                    #
+# This program is distributed in the hope that it will be useful,    #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of     #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU  #
+# General Public License for more details.                           #
+#                                                                    #
+# You should have received a copy of the GNU General Public License  #
+# along with this program.  If not, see                              #
+# <https://www.gnu.org/licenses/>.                                   #
+#                                                                    #
 ######################################################################
 ######################################################################
+#                                                                    #
+#  02/11/2018 - V1.1.1 - Added license (TdPA)                        #
+#                      - Fixed help() formatting (TdPA)              #
 #                                                                    #
 #  31/10/2018 - V1.1.0 - Changed the whole error handling (TdPA)     #
 #                      - Updated help and parameter listing (TdPA)   #
@@ -816,7 +833,7 @@ class maps_class():
                'maps_class.generate_rivers()\n'
 
         msg += ' You can use the argument "detailed=True" for a ' + \
-               'more precise, albeit slower, tracing of rivers.\n\n'
+               'more precise,\n albeit slower, tracing of rivers.\n\n'
 
         msg += ' Each new element that can be generated ' + \
                'requires\n every previous element in the order ' + \
@@ -828,19 +845,19 @@ class maps_class():
 
         msg += ' You can use maps_class.generate_all() to ' + \
                'generate\n every aspect of the map in one go. ' + \
-               'The mode for the rivers is "defailed=False" ' + \
+               'The mode for\n the rivers is "defailed=False" ' + \
                'with this shortcut\n\n'
 
         msg += ' Everything except the heights requires a full ' + \
                'globe map\n\n'
 
         msg += ' The method maps_class.refine() can be used to' + \
-               ' get a \nsubsection of a map with a much better' + \
+               ' get a\n subsection of a map with a much better' + \
                ' resolution.\n If the weather and rivers are' + \
                ' already calculated, they will\n be also refined,' + \
                ' if not, you will not be able to generate them\n' + \
                ' afterwards. Be careful, this process is not' + \
-               ' reversible, \nit is recommended to save the' + \
+               ' reversible,\n it is recommended to save the' + \
                ' global map before refining.\n\n'
 
         msg += ' To visualize a map in 2D, use the method\n maps' + \
@@ -851,7 +868,7 @@ class maps_class():
                'short keyword using the set_projection(val)\n' + \
                ' method.\n For some projections you may want to ' + \
                'rotate the map\n in the longitude axis. Use self.' + \
-               'rotate(val) to\n rotate the longitude by val\n\n'
+               'rotate(val) to\n rotate the longitude by val.\n\n'
 
         msg += ' To store a generated map, use maps_class.save_' + \
                'map().\n The default name is the parameter ' + \

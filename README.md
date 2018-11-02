@@ -116,8 +116,7 @@
  
  # TO DO
 
-  - Fix the formatting in help(), did some changes before commiting and did not check the result.
   - Better readme, probably.
   - Improve the visual representation of the wind variable.
-  - Revise support for vtk, have not checked since ages ago.
+  - Revise support for vtk, have not checked since ages.
 

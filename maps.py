@@ -36,6 +36,7 @@
 #                                                                    #
 #  02/11/2018 - V1.1.1 - Added license (TdPA)                        #
 #                      - Fixed help() formatting (TdPA)              #
+#                      - Slightly improved wind draw (TdPA)          #
 #                                                                    #
 #  31/10/2018 - V1.1.0 - Changed the whole error handling (TdPA)     #
 #                      - Updated help and parameter listing (TdPA)   #
@@ -6721,25 +6722,6 @@ class maps_class():
 
             elif ii == 1:
 
-                # Limits arrows
-               #skipth = 20
-                dTh =  (self.__pthrange[1] - self.__pthrange[0])/8.
-                dth = self.__lat[1] - self.__lat[0]
-                skipth = 0
-                while skipth*dth < dTh:
-                    skipth += 1
-                    if skipth >= self.__nth-1:
-                        break
-               #skipch = 50
-               #skipth = np.amax([self.__nth/skipth,1])
-                dCh =  (self.__pchrange[1] - self.__pchrange[0])/4.
-                dch = self.__lon[1] - self.__lon[0]
-                skipch = 0
-                while skipch*dch < dCh:
-                    skipch += 1
-                    if skipch >= self.__nch-1:
-                        break
-
                 # If Full map, cycle
                 if self.__fullmapx:
                     plonv, lon = addcyclic(self.__wind[:,:,1], \
@@ -6748,22 +6730,81 @@ class maps_class():
                                            self.__lon)
                     pmodv, lon = addcyclic(self.__wind[:,:,2], \
                                            self.__lon)
-                    skipch = np.amax([(self.__nch+1)/skipch,1])
                 else:
                     plonv = self.__wind[:,:,1]
                     platv = self.__wind[:,:,0]
                     pmodv = self.__wind[:,:,2]
-                    skipch = np.amax([self.__nch/skipch,1])
+                    lon = copy.deepcopy(self.__lon)
 
                 Lon, Lat = np.meshgrid(lon,lat)
                 Lonv, Latv = plonv, platv
                 xv, yv = mapp.rotate_vector(Lonv, Latv, Lon, Lat)
 
-                xp = x[::skipth,::skipch]
-                yp = y[::skipth,::skipch]
-                xv = xv[::skipth,::skipch]
-                yv = yv[::skipth,::skipch]
-                scale = pmodv[::skipth,::skipch]
+                # If we can interpolate
+                if self.__interp:
+
+                    xp = copy.deepcopy(x)
+                    yp = copy.deepcopy(y)
+                    scale = copy.deepcopy(pmodv)
+
+                    # Interpolate to plot just 20x20 arrows
+                    lat0 = np.max([-89.9, self.__pthrange[0]])
+                    lat1 = np.min([ 89.9, self.__pthrange[1]])
+                    latn = np.linspace(lat0,lat1,20,endpoint=True)
+                    lon0 = np.max([-180., self.__pchrange[0]])
+                    lon1 = np.min([ 179., self.__pchrange[1]])
+                    lonn = np.linspace(lon0,lon1,20,endpoint=True)
+                    latn, lonn = np.meshgrid(latn, lonn, \
+                                             indexing='ij')
+
+                    f = interpolate.RegularGridInterpolator( \
+                                             (self.__lat, lon), xp)
+                    xp = f((latn, lonn))
+
+                    f = interpolate.RegularGridInterpolator( \
+                                             (self.__lat, lon), yp)
+                    yp = f((latn, lonn))
+
+                    f = interpolate.RegularGridInterpolator( \
+                                             (self.__lat, lon), xv)
+                    xv = f((latn, lonn))
+
+                    f = interpolate.RegularGridInterpolator( \
+                                             (self.__lat, lon), yv)
+                    yv = f((latn, lonn))
+
+                    f = interpolate.RegularGridInterpolator( \
+                                          (self.__lat, lon), scale)
+                    scale = f((latn, lonn))
+
+                # Cannot interpolate
+                else:
+
+                    # Limits arrows
+                    dTh = (self.__pthrange[1] - \
+                           self.__pthrange[0])/4.
+                    dth = self.__lat[1] - self.__lat[0]
+                    skipth = 0
+                    while skipth*dth < dTh:
+                        skipth += 1
+                        if skipth >= self.__nth-1:
+                            break
+                    skipth = np.amax([skipth,1])
+                    dCh =  (self.__pchrange[1] - \
+                            self.__pchrange[0])/4.
+                    dch = self.__lon[1] - self.__lon[0]
+                    skipch = 0
+                    while skipch*dch < dCh:
+                        skipch += 1
+                        if skipch >= self.__nch-1:
+                            break
+                    skipch = np.amax([skipch,1])
+
+                    xp = x[::skipth,::skipch]
+                    yp = y[::skipth,::skipch]
+                    xv = xv[::skipth,::skipch]
+                    yv = yv[::skipth,::skipch]
+                    scale = pmodv[::skipth,::skipch]
 
                 # Adjust color
                 cmap = self.__color_adjust(cm.rainbow, \

@@ -34,6 +34,25 @@
 ######################################################################
 ######################################################################
 #                                                                    #
+#  02/07/2021 - V2.0.0 - The date is for the changelog, changes are  #
+#                        like a year old (TdPA)                      #
+#                      - Updated print statements to python 3 (TdPA) #
+#                      - Basemap has been deprecated in python 3,    #
+#                        using cartopy now (TdPA)                    #
+#                      - Cartopy required a full change of the       #
+#                        plotting method and of projection           #
+#                        managing (TdPA)                             #
+#                      - Corrected input check for octaves and for   #
+#                        persistence (TdPA)                          #
+#                      - The python 2 version relied in division by  #
+#                        integers. Updated to python 3 (TdPA)        #
+#                      - Added custom seed input to wind and river   #
+#                        generator functions (TdPA)                  #
+#                      - The python 2 version relied in keys()       #
+#                        returning a list, updated to python 3 (TdPA)#
+#                      - Changed some integer checks to bool (TdPA)  #
+#                      - Bugfixing for binary reading (TdPA)         #
+#                                                                    #
 #  02/11/2018 - V1.1.1 - Added license (TdPA)                        #
 #                      - Fixed help() formatting (TdPA)              #
 #                      - Slightly improved wind draw (TdPA)          #
@@ -85,29 +104,29 @@ try:
     from simplex import *
 except ImportError:
     msg = 'Missing simplex.py'
-    print _maps_class__terror + msg
+    print(_maps_class__terror + msg)
     for err in sys.exc_info()[:2]:
-        print err
+        print(err)
     sys.exit()
 except:
     msg = 'Unexpected error importing simplex'
-    print _maps_class__terror + msg
+    print(_maps_class__terror + msg)
     for err in sys.exc_info()[:2]:
-        print err
+        print(err)
     sys.exit()
 try:
     import numpy as np
 except ImportError:
     msg = 'Missing numpy'
-    print _maps_class__terror + msg
+    print(_maps_class__terror + msg)
     for err in sys.exc_info()[:2]:
-        print err
+        print(err)
     sys.exit()
 except:
     msg = 'Unexpected error importing numpy'
-    print _maps_class__terror + msg
+    print(_maps_class__terror + msg)
     for err in sys.exc_info()[:2]:
-        print err
+        print(err)
     sys.exit()
 try:
     import random
@@ -117,11 +136,11 @@ except:
 try:
     import matplotlib.pyplot as plt
     from matplotlib import cm
-    from mpl_toolkits.basemap import Basemap
-    from mpl_toolkits.basemap import addcyclic
     from matplotlib.colors import LinearSegmentedColormap
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     import matplotlib.gridspec as gridspec
+    import matplotlib.ticker as mticker
+    import cartopy.crs as ccrs
     _maps_class__2Dsup = True
 except:
     _maps_class__2Dsup = False
@@ -186,39 +205,28 @@ class maps_class():
 
         # Supported maps
         self.__modes = { \
-             'cea':'Cylindrical Equal Area', \
-             'mbtfpq':'McBryde-Thomas Flat-Polar Quartic', \
-             'aeqd':'Azimuthal Equidistant', \
-             'sinu':'Sinusoidal', \
-             'poly':'Polyconic', \
-             'omerc':'Oblique Mercator', \
-             'gnom':'Gnomonic', \
-             'moll':'Mollweide', \
-             'lcc':'Lambert Conformal', \
-             'tmerc':'Transverse Mercator', \
-             'nplaea':'North-Polar Lambert Azimuthal', \
-             'gall':'Gall Stereographic Cylindrical',
-             'npaeqd':'North-Polar Azimuthal Equidistant', \
-             'mill':'Miller Cylindrical', \
-             'merc':'Mercator', \
-             'stere':'Stereographic', \
-             'eqdc':'Equidistant Conic', \
-             'cyl':'Cylindrical Equidistant', \
-             'npstere':'North-Polar Stereographic', \
-             'spstere':'South-Polar Stereographic', \
-             'hammer':'Hammer', \
-             'geos':'Geostationary', \
-             'nsper':'Near-Sided Perspective', \
-             'eck4':'Eckert IV', \
+             'pc':'PlateCarree', \
              'aea':'Albers Equal Area', \
-             'kav7':'Kavrayskiy VII', \
-             'spaeqd':'South-Polar Azimuthal Equidistant', \
+             'aeqd':'Azimuthal Equidistant', \
+             'eqdc':'Equidistant Conic', \
+             'lcc':'Lambert Conformal', \
+             'lcy':'Lambert Cylindrical', \
+             'merc':'Mercator', \
+             'mill':'Miller Cylindrical', \
+             'moll':'Mollweide', \
              'ortho':'Orthographic', \
-             'cass':'Cassini-Soldner', \
-             'vandg':'van der Grinten', \
+             'robin':'Robinson', \
+             'sinu':'Sinusoidal', \
+             'stere':'Stereographic', \
+             'tmerc':'Transverse Mercator', \
+             'igh':'Interrupted Goode Homolosine', \
+             'rp':'Rotated Pole', \
+             'osgb': 'OSGB', \
+             'ee': 'Equal Earth', \
+             'gnom':'Gnomonic', \
              'laea':'Lambert Azimuthal Equal Area', \
-             'splaea':'South-Polar Lambert Azimuthal', \
-             'robin':'Robinson'}
+             'nps':'North Polar Stereo', \
+             'sps':'North Polar Stereo'}
 
         self.__default = {'nth': 360, \
                           'nch': 360, \
@@ -236,7 +244,7 @@ class maps_class():
                           'maxwindspeed': 200., \
                           'mintemperature': -10., \
                           'maxtemperature': 30., \
-                          'projection': 'cea'}
+                          'projection': 'lcy'}
 
         #
         # Control inputs
@@ -435,7 +443,7 @@ class maps_class():
         else:
             try:
                 self.__octaves = int(octaves)
-                if self.__optaves < 1:
+                if self.__octaves < 1:
                     msg = 'Octaves must be positive. Set default'
                     self.__warning(msg)
                     self.__octaves = self.__default['octaves']
@@ -475,7 +483,7 @@ class maps_class():
             self.__persistence = self.__default['persistence']
         else:
             try:
-                self.__persistence = int(persistence)
+                self.__persistence = float(persistence)
                 if self.__persistence < 0.:
                     msg = 'Persistence must be positive. Set default'
                     self.__warning(msg)
@@ -1516,7 +1524,7 @@ class maps_class():
 ######################################################################
 ######################################################################
 
-    def generate_windnodes(self):
+    def generate_windnodes(self,seed=None):
         ''' Random generation of wind nodes
         '''
 
@@ -1524,7 +1532,10 @@ class maps_class():
         if self.__random:
 
             # Initialize seed to the seed of the map
-            random.seed(self.__seed)
+            if isinstance(seed, int):
+                random.seed(seed)
+            else:
+                random.seed(self.__seed)
 
             try:
                 if self.__wind_nnodes < 0:
@@ -2572,7 +2583,7 @@ class maps_class():
                             # Even number of longitudes
                             if self.__nch % 2 == 0:
 
-                                jjw0 = self.__nch/2 + jj
+                                jjw0 = int(self.__nch//2) + jj
                                 jja = int(jjw0 + sx)
                                 if jjw0 > self.__nch-1:
                                     jjw0 -= self.__nch
@@ -2598,7 +2609,7 @@ class maps_class():
                             # Odd number of longitudes
                             else:
 
-                                jjw0 = self.__nch/2 + jj
+                                jjw0 = int(self.__nch//2) + jj
                                 jjw1 = jjw0 + 1
                                 if jjw0 > self.__nch-1:
                                     jjw0 -= self.__nch
@@ -2966,7 +2977,7 @@ class maps_class():
                             # Even number of longitudes
                             if self.__nch % 2 == 0:
 
-                                jjw0 = self.__nch/2 + jj
+                                jjw0 = int(self.__nch//2) + jj
                                 jja = int(jjw0 + sx)
                                 if jjw0 > self.__nch-1:
                                     jjw0 -= self.__nch
@@ -2993,7 +3004,7 @@ class maps_class():
                             # Odd number of longitudes
                             else:
 
-                                jjw0 = self.__nch/2 + jj
+                                jjw0 = int(self.__nch//2) + jj
                                 jjw1 = jjw0 + 1
                                 if jjw0 > self.__nch-1:
                                     jjw0 -= self.__nch
@@ -3235,7 +3246,7 @@ class maps_class():
 ######################################################################
 ######################################################################
 
-    def generate_rivers(self, detailed=None, silent=False):
+    def generate_rivers(self, detailed=None, silent=False, seed=None):
         ''' Generates rivers/lakes
             Extremely experimental.
         '''
@@ -3305,9 +3316,13 @@ class maps_class():
             __lake = []
             __check = [[],[]]
 
-            # Initialize seed to the seed of the map
-            random.seed(self.__seed)
-            np.random.seed(self.__seed)
+            # Initialize seed
+            if isinstance(seed, int):
+                random.seed(seed)
+                np.random.seed(seed)
+            else:
+                random.seed(self.__seed)
+                np.random.seed(self.__seed)
 
             # Number of sources to try
             msource = 500
@@ -3335,7 +3350,7 @@ class maps_class():
                 ipoint = random.choice(range(Npoints))
 
                 # Decouple indexes
-                ilat = ipoint/self.__nch
+                ilat = int(ipoint//self.__nch)
                 ilon = ipoint % self.__nch
 
                 # Get info from this point
@@ -4111,7 +4126,7 @@ class maps_class():
                                             d2_d[d2] = [ilat1,ilon1]
 
                                 # Look for most efficient path
-                                d2_v = d2_d.keys()
+                                d2_v = list(d2_d.keys())
                                 d2 = np.min(d2_v)
                                 indm = np.argmin(d2_v)
                                 current = d2_d[d2_v[indm]]
@@ -4149,7 +4164,7 @@ class maps_class():
                                             d2_d[d2] = [ilat1,ilon1]
 
                                 # Look for most efficient path
-                                d2_v = d2_d.keys()
+                                d2_v = list(d2_d.keys())
                                 d2 = np.min(d2_v)
                                 indm = np.argmin(d2_v)
                                 current = d2_d[d2_v[indm]]
@@ -4527,7 +4542,7 @@ class maps_class():
 
             # Get normalized height vector
             WW = []
-            for key in pool.keys():
+            for key in list(pool.keys()):
                 WW.append(key)
             total = sum(WW)
             for ii in range(len(WW)):
@@ -4537,7 +4552,7 @@ class maps_class():
             ind = np.random.choice(range(len(WW)), 1, p=WW)[0]
 
             # Define output
-            out = pool[pool.keys()[ind]]
+            out = pool[list(pool.keys())[ind]]
 
         return out
 
@@ -5028,10 +5043,10 @@ class maps_class():
         f.write(struct.pack('<d', self.__maxtemperature))
         mode = self.__projection + \
                ' '*np.amax([0,6 - len(list(self.__projection))])
-        f.write(bytearray(mode))
+        f.write(str.encode(mode))
         name = self.__name + \
                ' '*np.amax([0,2048 - len(list(self.__name))])
-        f.write(bytearray(name))
+        f.write(str.encode(name))
 
 ######################################################################
 ######################################################################
@@ -5144,13 +5159,16 @@ class maps_class():
             f = open(name,'rb')
             check = self.__load_parameters(f)
             f.close()
+            return check
         except ValueError:
             msg = 'Invalid inputs in load_parameters'
             self.__error(msg)
+            return False
         except:
             msg = 'Unexpected error in load_parameters'
             error = sys.exc_info()[:2]
             self.__error(msg, error)
+            return False
 
 ######################################################################
 ######################################################################
@@ -5168,11 +5186,11 @@ class maps_class():
             f = open(name,'rb')
             check = self.__load_parameters(f)
 
-            if check == 0:
+            if check:
 
                 checkb = self.__load_map(f)
 
-                if checkb == 0:
+                if checkb:
                     self.__exist = True
                 else:
                     if self.__exist:
@@ -5261,13 +5279,16 @@ class maps_class():
                         self.__warning(msg)
                         self.__lake_exist = False
             f.close()
+            return True
         except ValueError:
             msg = 'Invalid inputs in load_map'
             self.__error(msg)
+            return False
         except:
             msg = 'Unexpected error in load_map'
             error = sys.exc_info()[:2]
             self.__error(msg, error)
+            return False
 
 ######################################################################
 ######################################################################
@@ -5279,14 +5300,17 @@ class maps_class():
         '''
 
         try:
+
             bit = f.read(4)
             self.__nth = struct.unpack('<i', bit)[0]
             if self.__nth < 3:
                 raise ValueError()
+
             bit = f.read(4)
             self.__nch = struct.unpack('<i', bit)[0]
             if self.__nch < 3:
                 raise ValueError()
+
             bit = f.read(16)
             self.__thrange = list(struct.unpack('<dd', bit)[0:2])
             l0, l1 = self.__thrange
@@ -5296,6 +5320,7 @@ class maps_class():
                l1 < -90. or \
                l1 > 90.:
                 raise ValueError()
+
             bit = f.read(16)
             self.__chrange = list(struct.unpack('<dd', bit)[0:2])
             l0, l1 = self.__chrange
@@ -5305,6 +5330,7 @@ class maps_class():
                l1 < -180. or \
                l1 > 180.:
                 raise ValueError()
+
             bit = f.read(16)
             self.__pthrange = list(struct.unpack('<dd', bit)[0:2])
             l0, l1 = self.__pthrange
@@ -5314,6 +5340,7 @@ class maps_class():
                l1 < -90. or \
                l1 > 90.:
                 raise ValueError()
+
             bit = f.read(16)
             self.__pchrange = list(struct.unpack('<dd', bit)[0:2])
             l0, l1 = self.__pchrange
@@ -5323,20 +5350,25 @@ class maps_class():
                l1 < -180. or \
                l1 > 180.:
                 raise ValueError()
+
             bit = f.read(4)
             self.__seed = struct.unpack('<i', bit)[0]
+
             bit = f.read(4)
             self.__octaves = struct.unpack('<i', bit)[0]
             if self.__octaves < 1:
                 raise ValueError()
+
             bit = f.read(8)
             self.__frequency = struct.unpack('<d', bit)[0]
             if self.__frequency < 0. or self.__frequency > 1.:
                 raise ValueError()
+
             bit = f.read(8)
             self.__persistence = struct.unpack('<d', bit)[0]
             if self.__persistence < 0.:
                 raise ValueError()
+
             bit = f.read(8)
             self.__water = struct.unpack('<d', bit)[0]
             if self.__water >= 0.:
@@ -5344,16 +5376,20 @@ class maps_class():
                     raise ValueError()
             else:
                 self.__water = -1
+
             bit = f.read(8)
             self.__maxdepth = struct.unpack('<d', bit)[0]
             if self.__maxdepth <= 0.:
                 raise ValueError()
+
             bit = f.read(8)
             self.__maxheight = struct.unpack('<d', bit)[0]
             if self.__maxheight <= 0.:
                 raise ValueError()
+
             bit = f.read(4)
             self.__wind_nnodes = struct.unpack('<i', bit)[0]
+
             bit = f.read(4)
             rwind_nnodes = struct.unpack('<i', bit)[0]
             if rwind_nnodes > 0:
@@ -5376,35 +5412,41 @@ class maps_class():
                     if wei < 0.:
                         raise ValueError()
                     self.__wind_nodes.append([lat,lon,sig,wei])
+
             bit = f.read(8)
             self.__maxwindspeed = struct.unpack('<d', bit)[0]
             if self.__maxwindspeed <= 0.:
                 raise ValueError()
+
             bit = f.read(8)
             self.__mintemperature = struct.unpack('<d', bit)[0]
             if self.__mintemperature > 0.:
                 raise ValueError()
+
             bit = f.read(8)
             self.__maxtemperature = struct.unpack('<d', bit)[0]
             if self.__maxtemperature < 0.:
                 raise ValueError()
+
             bit = f.read(6)
-            self.__projection = str(bit).strip()
+            self.__projection = bit.decode('utf8').strip()
             if self.__projection not in self.__modes.keys():
                 raise ValueError()
+
             bit = f.read(2048)
-            self.__name = str(bit).strip()
+            self.__name = bit.decode('utf8').strip()
+
         except ValueError:
             msg = 'Invalid inputs loading parameters'
             self.__error(msg)
-            return -1
+            return False
         except:
             msg = 'Unexpected error loading parameters'
             error = sys.exc_info()[:2]
             self.__error(msg, error)
-            return -1
+            return False
 
-        return 0
+        return True
 
 ######################################################################
 ######################################################################
@@ -5431,16 +5473,16 @@ class maps_class():
             self.__shift = float(struct.unpack(form, bit)[0])
             bit = f.read(8)
             form = '<d'
-            self.__minheight = float(struct.unpack(form, bit)[0])
+            self.__minz = float(struct.unpack(form, bit)[0])
             bit = f.read(8)
             form = '<d'
-            self.__maxheight = float(struct.unpack(form, bit)[0])
-            return 0
+            self.__maxz = float(struct.unpack(form, bit)[0])
+            return True
         except:
             msg = 'Unexpected error loading map'
             error = sys.exc_info()[:2]
             self.__error(msg, error)
-            return -1
+            return False
 
 ######################################################################
 ######################################################################
@@ -5453,7 +5495,7 @@ class maps_class():
 
         try:
             bit = f.read(4)
-            cw = struct.unpack('<i', bit)
+            cw = int(struct.unpack('<i', bit)[0])
             if cw > 0:
                 bit = f.read(8*self.__nth*self.__nch*3)
                 form = '<'+'d'*self.__nth*self.__nch*3
@@ -5470,7 +5512,7 @@ class maps_class():
 
         try:
             bit = f.read(4)
-            ct = struct.unpack('<i', bit)
+            ct = int(struct.unpack('<i', bit)[0])
             if ct > 0:
                 bit = f.read(8*self.__nth*self.__nch)
                 form = '<'+'d'*self.__nth*self.__nch
@@ -5490,7 +5532,7 @@ class maps_class():
 
         try:
             bit = f.read(4)
-            cm = struct.unpack('<i', bit)
+            cm = int(struct.unpack('<i', bit)[0])
             if cm > 0:
                 bit = f.read(8*self.__nth*self.__nch)
                 form = '<'+'d'*self.__nth*self.__nch
@@ -5507,7 +5549,7 @@ class maps_class():
 
         try:
             bit = f.read(4)
-            cb = struct.unpack('<i', bit)
+            cb = int(struct.unpack('<i', bit)[0])
             if cb > 0:
                 bit = f.read(8*self.__nth*self.__nch)
                 form = '<'+'d'*self.__nth*self.__nch
@@ -6436,6 +6478,142 @@ class maps_class():
 
 ######################################################################
 ######################################################################
+
+    def __get_projection(self,lat_0=None,lon_0=None, \
+                         pthrange=[-80,80],pchrange=[-179,179]):
+        ''' Get the projection method initialized
+        '''
+
+        if self.__projection == 'pc':
+            return ccrs.PlateCarree(central_longitude=lon_0, \
+                                    globe=None)
+        if self.__projection == 'aea':
+            return ccrs.AlbersEqualArea(central_longitude=lon_0, \
+                                   central_latitude=lat_0, \
+                                   false_easting=0.0, \
+                                   false_northing=0.0, \
+                                   standard_parallels=(20.0,50.0), \
+                                   globe=None)
+        if self.__projection == 'aeqd':
+            returnccrs.AzimuthalEquidistant( \
+                                      central_longitude=lon_0, \
+                                      central_latitude=lat_0, \
+                                      false_easting=0.0, \
+                                      false_northing=0.0, \
+                                      globe=None)
+        if self.__projection == 'eqdc':
+            return ccrs.EquidistantConic( \
+                                  central_longitude=lon_0, \
+                                  central_latitude=lat_0, \
+                                  false_easting=0.0, \
+                                  false_northing=0.0, \
+                                  standard_parallels=(20.0,50.0), \
+                                  globe=None)
+        if self.__projection == 'lcc':
+            return ccrs.LambertConformal( \
+                                  central_longitude=lon_0, \
+                                  central_latitude=lat_0, \
+                                  false_easting=0.0, \
+                                  false_northing=0.0, \
+                                  secant_latitudes=None, \
+                                  standard_parallels=None, \
+                                  globe=None, \
+                                  cutoff=-30)
+        if self.__projection == 'lcy':
+            return ccrs.LambertCylindrical(central_longitude=lon_0)
+        if self.__projection == 'merc':
+            return ccrs.Mercator( \
+                          central_longitude=lon_0, \
+                          min_latitude=pthrange[0], \
+                          max_latitude=pthrange[1], \
+                          globe=None, \
+                          latitude_true_scale=None, \
+                          false_easting=0.0, \
+                          false_northing=0.0, \
+                          scale_factor=None)
+        if self.__projection == 'mill':
+            return ccrs.Miller(central_longitude=lon_0, \
+                               globe=None)
+        if self.__projection == 'moll':
+            return ccrs.Mollweide(central_longitude=lon_0, \
+                                  globe=None, \
+                                  false_easting=None, \
+                                  false_northing=None)
+        if self.__projection == 'ortho':
+            return ccrs.Orthographic(central_longitude=lon_0, \
+                                     central_latitude=lat_0, \
+                                     globe=None)
+        if self.__projection == 'robin':
+            return ccrs.Robinson(central_longitude=lon_0, \
+                                 globe=None, \
+                                 false_easting=None, \
+                                 false_northing=None)
+        if self.__projection == 'sinu':
+            return ccrs.Sinusoidal(central_longitude=lon_0, \
+                                   false_easting=0.0, \
+                                   false_northing=0.0, \
+                                   globe=None)
+        if self.__projection == 'stere':
+            return ccrs.Stereographic(central_latitude=lat_0, \
+                                      central_longitude=lat_1, \
+                                      false_easting=0.0, \
+                                      false_northing=0.0, \
+                                      true_scale_latitude=None, \
+                                      scale_factor=None, \
+                                      globe=None)
+        if self.__projection == 'tmerc':
+            return ccrs.TransverseMercator(central_longitude=lon_0, \
+                                           central_latitude=lat_0, \
+                                           false_easting=0.0, \
+                                           false_northing=0.0, \
+                                           scale_factor=1.0, \
+                                           globe=None, \
+                                           approx=None)
+        if self.__projection == 'igh':
+            return ccrs.InterruptedGoodeHomolosine( \
+                                   central_longitude=lon_0, \
+                                   globe=None)
+        if self.__projection == 'rp':
+            if lat_0 >= 0.0:
+                pol = 90.0
+            else:
+                pol = -90.0
+            return ccrs.RotatedPole(pole_longitude=lon_0, \
+                                    pole_latitude=pol, \
+                                    central_rotated_longitude=0.0, \
+                                    globe=None)
+        if self.__projection == 'osgb':
+            return ccrs.OSGB(approx=None)
+        if self.__projection == 'ee':
+            return ccrs.EqualEarth(central_longitude=lon_0, \
+                                   false_easting=None, \
+                                   false_northing=None, \
+                                   globe=None)
+        if self.__projection == 'gnom':
+            return ccrs.Gnomonic(central_latitude=lat_0, \
+                                 central_longitude=lon_0, \
+                                 globe=None)
+        if self.__projection == 'laea':
+            return ccrs.LambertAzimuthalEqualArea( \
+                                central_longitude=lon_0, \
+                                central_latitude=lat_0, \
+                                false_easting=0.0, \
+                                false_northing=0.0, \
+                                globe=None)
+        if self.__projection == 'nps':
+            return ccrs.NorthPolarStereo( \
+                                central_longitude=lon_0, \
+                                true_scale_latitude=None, \
+                                globe=None)
+        if self.__projection == 'sps':
+            return ccrs.SouthPolarStereo( \
+                                central_longitude=lon_0, \
+                                true_scale_latitude=None, \
+                                globe=None)
+
+
+######################################################################
+######################################################################
 ######################################################################
 ######################################################################
 
@@ -6450,7 +6628,7 @@ class maps_class():
         '''
 
         if not self.__can_plot_2D:
-            msg = 'pyplot/basemap not available'
+            msg = 'pyplot/cartopy not available'
             self.__error(msg)
             return
 
@@ -6483,36 +6661,14 @@ class maps_class():
         if londel is None:
             londel = 30
 
-        # If Full map, cycle
-        if self.__fullmapx:
-            pheight, lon = addcyclic(self.__height,self.__lon)
-            lat = self.__lat
-        else:
-            pheight, lon, lat = self.__height, self.__lon, self.__lat
+        # Get projection
+        proj = self.__get_projection(lat_0,lon_0,pthrange,pchrange)
 
-        mapp = Basemap(projection=self.__projection, \
-                       lat_0=lat_0, \
-                       lon_0=lon_0, \
-                       resolution=resolution, \
-                       llcrnrlon=pchrange[0], \
-                       urcrnrlon=pchrange[1], \
-                       llcrnrlat=pthrange[0], \
-                       urcrnrlat=pthrange[1], \
-                       width=width, \
-                       height=height, \
-                       lat_ts=lat_ts, \
-                       lat_1=lat_1, \
-                       lat_2=lat_2, \
-                       lon_1=lon_1, \
-                       lon_2=lon_2, \
-                       k_0=k_0, \
-                       no_rot=no_rot, \
-                       boundinglat=boundinglat, \
-                       round=round, \
-                       satellite_height=satellite_height)
+        # Get heights, longitudes and latitudes
+        pheight, lon, lat = self.__height, self.__lon, self.__lat
 
         # Compute native map projection coordinates of lat/lon grid.
-        x, y = mapp(*np.meshgrid(lon, lat))
+        x, y = np.meshgrid(lon, lat)
 
         # Load color for terrain
         cco =  self.__color_def(minv=phrange[0], maxv=phrange[1])
@@ -6547,10 +6703,18 @@ class maps_class():
         fsize = [(17,4),(17,4),(20,7),(20,7),(20,9),(20,9), \
                  (20,12),(20,12),(20,15)]
 
-        fig = plt.figure(figsize=fsize[nplots-1])
-        gs = gridspec.GridSpec(nrow, ncol, \
-                               wspace=0.01, hspace=0.01)
-        fig.clf()
+        try:
+            fig.clf()
+        except:
+            pass
+
+        fig, axs = plt.subplots(nrows=nrow, ncols=ncol, \
+                                figsize=fsize[nplots-1], \
+                                subplot_kw={'projection': proj})
+        if nplots > 1:
+            axs = axs.flatten()
+        else:
+            axs = [axs]
 
         kk = -1
         # For each variable
@@ -6559,23 +6723,34 @@ class maps_class():
             if trues[ii] < .5:
                 continue
 
+            # Advance plot index
             kk += 1
 
-            ax = plt.subplot(gs[irow[ii], icol[ii]])
+            # Get axis
+            ax = axs[kk]
 
             # Draw lat/lon grid lines
-            mapp.drawmeridians(np.arange(pchrange[0], \
-                                         pchrange[1], \
-                                         londel))
-            mapp.drawparallels(np.arange(pthrange[0], \
-                                         pthrange[1], \
-                                         latdel))
+            gl = ax.gridlines(crs=proj, \
+                              draw_labels=False, \
+                              linewidth=1.0, \
+                              color='gray', \
+                              alpha=0.5, \
+                              linestyle=':')
+            gl.xlocator = mticker.FixedLocator( \
+                             np.arange(pchrange[0], \
+                                       pchrange[1], \
+                                       londel))
+            gl.ylocator = mticker.FixedLocator( \
+                             np.arange(pthrange[0], \
+                                       pthrange[1], \
+                                       latdel))
 
+            # Height
             if ii == 0:
 
                 # Contour data over the map.
-                im = ax.imshow(pheight)
-                cs = mapp.contourf(x,y,pheight,255,cmap=cco)
+                cs = ax.contourf(x,y,pheight,255,cmap=cco, \
+                                 transform=proj)
 
                 # Color bar
                 ticks = []
@@ -6589,7 +6764,9 @@ class maps_class():
                     elif ff > maxc:
                         break
                 divider = make_axes_locatable(ax)
-                cax = divider.append_axes("left", size="4%", pad=0.05)
+                cax = divider.append_axes("left", size="4%", \
+                                          pad=0.05, \
+                                          axes_class=plt.Axes)
                 cbar = plt.colorbar(cs,orientation='vertical', \
                                     cax=cax,ticks=ticks)
                 cax.yaxis.set_ticks_position('left')
@@ -6619,8 +6796,7 @@ class maps_class():
                             continue
 
                         # If the lake crosses the globe
-                        if np.min(lakex) < -170. and \
-                           np.max(lakex) > 170.:
+                        if xl < -170. and xr > 170.:
                             lakexl = []
                             lakeyl = []
                             lakexr = []
@@ -6632,12 +6808,12 @@ class maps_class():
                                 else:
                                     lakexr += [lakex[ii]]
                                     lakeyr += [lakey[ii]]
-                            xla,yla = mapp(lakexr,lakeyr)
-                            ax.fill(xla, yla, \
-                                    color=(0.86,1.0,1.0,1.0))
-                            xla,yla = mapp(lakexl,lakeyl)
-                            ax.fill(xla, yla, \
-                                    color=(0.86,1.0,1.0,1.0))
+                            ax.fill(lakexr, lakeyr, \
+                                    color=(0.86,1.0,1.0,1.0), \
+                                    transform=proj)
+                            ax.fill(lakexl, lakeyl, \
+                                    color=(0.86,1.0,1.0,1.0), \
+                                    transform=proj)
                         # If the lake is fine in the periodic boundary
                         else:
 
@@ -6656,24 +6832,40 @@ class maps_class():
                                        lakey[ii] < yr:
                                         lakexl += [lakex[ii]]
                                         lakeyl += [lakey[ii]]
-                                xla,yla = mapp(lakexl,lakeyl)
-                                ax.fill(xla, yla, \
-                                        color=(0.86,1.0,1.0,1.0))
+
+                                ax.fill(lakexl, lakeyl, \
+                                        color=(0.86,1.0,1.0,1.0), \
+                                        transform=proj)
 
                             # If no split
                             else:
-                                xla,yla = mapp(lakex,lakey)
-                                ax.fill(xla, yla, \
-                                        color=(0.86,1.0,1.0,1.0))
+                                ax.fill(lakex, lakey, \
+                                        color=(0.86,1.0,1.0,1.0), \
+                                        transform=proj)
 
                 # If there are rivers
                 if self.__river_exist:
+                    # For each river
                     for river in self.__river:
+
                         riverx = river[1]
                         rivery = river[0]
+
+                        # Borders
+                        xl = np.min(riverx)
+                        xr = np.max(riverx)
+                        yl = np.min(rivery)
+                        yr = np.max(rivery)
+
+                        # Check if completely out of bounds
+                        if xr < pchrange[0] or \
+                           xl > pchrange[1] or \
+                           yr < pthrange[0] or \
+                           yl > pthrange[1]:
+                            continue
+
                         # If the river crosses the globe
-                        if np.min(riverx) < -170. and \
-                           np.max(riverx) > 170.:
+                        if xl < -170. and xr > 170.:
 
                             lriversx = []
                             lriversy = []
@@ -6710,134 +6902,101 @@ class maps_class():
                                     lriversy.append(llriversy)
 
                             for rivx,rivy in zip(lriversx,lriversy):
-                                xrv,yrv = mapp(rivx,rivy)
-                                plt.plot(xrv,yrv, \
-                                         color=(0.86,1.0,1.0,1.0))
+                                ax.plot(rivx,rivy, \
+                                         color=(0.86,1.0,1.0,1.0), \
+                                         transform=proj)
 
-                        # If the river is fine
+                        # If the river is fine in the periodic
+                        # boundary
                         else:
-                            xrv,yrv = mapp(riverx,rivery)
-                            ax.plot(xrv,yrv,color=(0.86,1.0,1.0,1.0))
+
+                            # Check that the lake is not split
+                            if xl < pchrange[0] or \
+                               xr > pchrange[1] or \
+                               yl < pthrange[0] or \
+                               yr > pthrange[1]:
+
+                                riverxl = []
+                                riveryl = []
+                                for ii in range(len(riverx)):
+                                    if riverx[ii] > xl and \
+                                       riverx[ii] < xr and \
+                                       rivery[ii] > yl and \
+                                       rivery[ii] < yr:
+                                        riverxl.append(riverx[ii])
+                                        riveryl.append(rivery[ii])
+                                        if ii == len(riverx)-1:
+                                            ax.plot(riverxl,riveryl, \
+                                               color= \
+                                                 (0.86,1.0,1.0,1.0), \
+                                               transform=proj)
+                                    else:
+                                        if len(riverxl) > 0:
+                                            ax.plot(riverxl,riveryl, \
+                                               color= \
+                                                 (0.86,1.0,1.0,1.0), \
+                                               transform=proj)
+                                            riverxl = []
+                                            riveryl = []
+
+                            # If no split
+                            else:
+
+                                ax.plot(riverx,rivery, \
+                                        color=(0.86,1.0,1.0,1.0), \
+                                        transform=proj)
+
+                # Fix extent
+                if self.__river_exist or self.__lake_exist:
+                    ax.set_extent([pchrange[0], \
+                                   pchrange[1], \
+                                   pthrange[0], \
+                                   pthrange[1]], \
+                                   crs=proj)
 
 
             elif ii == 1:
 
-                # If Full map, cycle
-                if self.__fullmapx:
-                    plonv, lon = addcyclic(self.__wind[:,:,1], \
-                                           self.__lon)
-                    platv, lon = addcyclic(self.__wind[:,:,0], \
-                                           self.__lon)
-                    pmodv, lon = addcyclic(self.__wind[:,:,2], \
-                                           self.__lon)
-                else:
-                    plonv = self.__wind[:,:,1]
-                    platv = self.__wind[:,:,0]
-                    pmodv = self.__wind[:,:,2]
-                    lon = copy.deepcopy(self.__lon)
-
-                Lon, Lat = np.meshgrid(lon,lat)
-                Lonv, Latv = plonv, platv
-                xv, yv = mapp.rotate_vector(Lonv, Latv, Lon, Lat)
-
-                # If we can interpolate
-                if self.__interp:
-
-                    xp = copy.deepcopy(x)
-                    yp = copy.deepcopy(y)
-                    scale = copy.deepcopy(pmodv)
-
-                    # Interpolate to plot just 20x20 arrows
-                    lat0 = np.max([-89.9, self.__pthrange[0]])
-                    lat1 = np.min([ 89.9, self.__pthrange[1]])
-                    latn = np.linspace(lat0,lat1,20,endpoint=True)
-                    lon0 = np.max([-180., self.__pchrange[0]])
-                    lon1 = np.min([ 179., self.__pchrange[1]])
-                    lonn = np.linspace(lon0,lon1,20,endpoint=True)
-                    latn, lonn = np.meshgrid(latn, lonn, \
-                                             indexing='ij')
-
-                    f = interpolate.RegularGridInterpolator( \
-                                             (self.__lat, lon), xp)
-                    xp = f((latn, lonn))
-
-                    f = interpolate.RegularGridInterpolator( \
-                                             (self.__lat, lon), yp)
-                    yp = f((latn, lonn))
-
-                    f = interpolate.RegularGridInterpolator( \
-                                             (self.__lat, lon), xv)
-                    xv = f((latn, lonn))
-
-                    f = interpolate.RegularGridInterpolator( \
-                                             (self.__lat, lon), yv)
-                    yv = f((latn, lonn))
-
-                    f = interpolate.RegularGridInterpolator( \
-                                          (self.__lat, lon), scale)
-                    scale = f((latn, lonn))
-
-                # Cannot interpolate
-                else:
-
-                    # Limits arrows
-                    dTh = (self.__pthrange[1] - \
-                           self.__pthrange[0])/4.
-                    dth = self.__lat[1] - self.__lat[0]
-                    skipth = 0
-                    while skipth*dth < dTh:
-                        skipth += 1
-                        if skipth >= self.__nth-1:
-                            break
-                    skipth = np.amax([skipth,1])
-                    dCh =  (self.__pchrange[1] - \
-                            self.__pchrange[0])/4.
-                    dch = self.__lon[1] - self.__lon[0]
-                    skipch = 0
-                    while skipch*dch < dCh:
-                        skipch += 1
-                        if skipch >= self.__nch-1:
-                            break
-                    skipch = np.amax([skipch,1])
-
-                    xp = x[::skipth,::skipch]
-                    yp = y[::skipth,::skipch]
-                    xv = xv[::skipth,::skipch]
-                    yv = yv[::skipth,::skipch]
-                    scale = pmodv[::skipth,::skipch]
+                # Get vector
+                plonv = self.__wind[:,:,1]
+                platv = self.__wind[:,:,0]
+                pmodv = self.__wind[:,:,2]
 
                 # Adjust color
                 cmap = self.__color_adjust(cm.rainbow, \
-                                           np.min(scale), \
-                                           np.max(scale), \
+                                           np.min(pmodv), \
+                                           np.max(pmodv), \
                                            self.__minwind, \
                                            self.__maxwind)
 
                 # Contour data over the map.
-                mapp.contour(x,y,pheight,[0.])
+                ax.contour(x,y,pheight,[0.],transform=proj, \
+                           colors=['black'])
 
-                cs = mapp.quiver(xp, yp, xv, yv, scale, cmap=cmap)
+                cs = ax.streamplot(lon, lat, plonv, platv, \
+                                   transform=proj,
+                                   linewidth=1, density=2, \
+                                   color=pmodv)
 
                 # Color bar
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="4%", \
-                                          pad=0.05)
-                cbar = plt.colorbar(cs,orientation='vertical',cax=cax)
+                                          pad=0.05, \
+                                          axes_class=plt.Axes)
+                cbar = plt.colorbar(cs.lines,orientation='vertical', \
+                                    cax=cax)
                 cax.yaxis.set_ticks_position('right')
                 cbar.set_label('km/h')
                 cax.yaxis.set_label_position('right')
 
             elif ii == 2:
 
-                # If Full map, cycle
-                if self.__fullmapx:
-                    ptemp, lon = addcyclic(self.__temperature, \
-                                           self.__lon)
-                else:
-                    ptemp = self.__temperature
+                # Get temperature
+                ptemp = self.__temperature
 
                 # Contour data over the map.
-                mapp.contour(x,y,pheight,[0.])
+                ax.contour(x,y,pheight,[0.],transform=proj, \
+                           colors=['black'])
 
                 # Load color for terrain
                 T0, T1 = self.__mintemperature, self.__maxtemperature
@@ -6845,16 +7004,18 @@ class maps_class():
 
                 # Contour data over the map.
                 if T0 < 0:
-                    cs = mapp.contourf(x,y,ptemp,255,cmap=cct)
+                    cs = ax.contourf(x,y,ptemp,255,cmap=cct, \
+                                     transform=proj)
                 else:
-                    cs = mapp.contourf(x,y,ptemp,255,cmap='Reds_r')
+                    cs = ax.contourf(x,y,ptemp,255,cmap='Reds_r', \
+                                     transform=proj)
 
                 # Color bar
                 ticks = []
                 minc = np.min(ptemp)
                 maxc = np.max(ptemp)
                 if minc < 0:
-                    dec = int(minc)/10
+                    dec = int(minc//10)
                     mini = (dec+1)*10
                 else:
                     mini = int(minc)-2
@@ -6865,7 +7026,9 @@ class maps_class():
                     elif ff > maxc:
                         break
                 divider = make_axes_locatable(ax)
-                cax = divider.append_axes("left", size="4%", pad=0.05)
+                cax = divider.append_axes("left", size="4%", \
+                                          pad=0.05, \
+                                          axes_class=plt.Axes)
                 cbar = plt.colorbar(cs,orientation='vertical', \
                                     cax=cax,ticks=ticks)
                 cax.yaxis.set_ticks_position('left')
@@ -6875,15 +7038,12 @@ class maps_class():
 
             elif ii == 3:
 
-                # If Full map, cycle
-                if self.__fullmapx:
-                    pmoist, lon = addcyclic(self.__moist, \
-                                            self.__lon)
-                else:
-                    pmoist = self.__moist
+                # Get moist
+                pmoist = self.__moist
 
                 # Contour data over the map.
-                mapp.contour(x,y,pheight,[0.])
+                ax.contour(x,y,pheight,[0.],transform=proj, \
+                           colors=['black'])
 
                 # Load color for terrain
                 M0, M1 = np.amin(pmoist), np.amax(pmoist)
@@ -6894,8 +7054,8 @@ class maps_class():
                                            self.__maxmoist)
 
                 # Contour data over the map.
-                cs = mapp.contourf(x,y,pmoist,255, \
-                                   cmap=cmap)
+                cs = ax.contourf(x,y,pmoist,255,cmap=cmap, \
+                                 transform=proj)
 
                 # Color bar
                 ticks = []
@@ -6910,7 +7070,8 @@ class maps_class():
                         break
                 divider = make_axes_locatable(ax)
                 cax = divider.append_axes("right", size="4%", \
-                                          pad=0.05)
+                                          pad=0.05, \
+                                          axes_class=plt.Axes)
                 cbar = plt.colorbar(cs,orientation='vertical', \
                                     cax=cax,ticks=ticks)
                 cax.yaxis.set_ticks_position('right')
@@ -6919,15 +7080,12 @@ class maps_class():
 
             elif ii == 4:
 
-                # If Full map, cycle
-                if self.__fullmapx:
-                    pbiome, lon = addcyclic(self.__biome, \
-                                            self.__lon)
-                else:
-                    pbiome = self.__biome
+                # Get biome
+                pbiome = self.__biome
 
                 # Contour data over the map.
-                mapp.contour(x,y,pheight,[0.])
+                ax.contour(x,y,pheight,[0.],transform=proj, \
+                           colors=['black'])
 
                 # Load color and texturefor terrain
                 cct =  self.__color_def_B()
@@ -6951,16 +7109,20 @@ class maps_class():
                 levels = [-3.5]
                 for ii in range(12):
                     levels.append(levels[-1] + 1.)
-                cs = mapp.contourf(x,y,pbiome, \
-                                   levels=levels,vmin=-3.5,vmax=8.5, \
-                                   cmap=cct,hatches=hatches)
+                cs = ax.contourf(x,y,pbiome, \
+                                 levels=levels, \
+                                 vmin=-3.5, vmax=8.5, \
+                                 cmap=cct,hatches=hatches, \
+                                 transform=proj)
 
                 # Color bar
                 ticks = [-3.0]
                 for ii in range(12):
                     ticks += [ticks[-1] + 1.]
                 divider = make_axes_locatable(ax)
-                cax = divider.append_axes("left", size="4%", pad=0.05)
+                cax = divider.append_axes("left", size="4%", \
+                                          pad=0.05, \
+                                          axes_class=plt.Axes)
                 cbar = plt.colorbar(cs,orientation='vertical', \
                                     cax=cax,ticks=ticks)
                 cax.yaxis.set_ticks_position('left')
@@ -6979,6 +7141,24 @@ class maps_class():
                           'Dessert' \
                          ]
                 cbar.ax.set_yticklabels(labels)
+
+        # If empty axes
+        if nplots < nrow*ncol:
+            # Blanck them
+            for ii in range(kk+1,nrow*ncol):
+                ax = axs[ii]
+                ax.plot([0,1],[0,1],color='white')
+                ax.spines['bottom'].set_color('white')
+                ax.spines['top'].set_color('white')
+                ax.spines['right'].set_color('white')
+                ax.spines['left'].set_color('white')
+                ax.tick_params(axis='x', colors='white')
+                ax.tick_params(axis='y', colors='white')
+                ax.yaxis.label.set_color('white')
+                ax.xaxis.label.set_color('white')
+                ax.axis('off')
+                ax.title.set_color('white')
+
 
 
         # Plot
